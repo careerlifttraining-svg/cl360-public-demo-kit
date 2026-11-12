@@ -16,7 +16,7 @@ h1{margin:0 0 6px;font-size:clamp(1.7rem,4vw,2.5rem)}h2{margin:.2rem 0}
 textarea,input{width:100%;background:#0b1220;color:#fff;border:2px solid #64748b;border-radius:11px;padding:12px;font:inherit}textarea{min-height:130px}
 button:focus,a:focus,textarea:focus,input:focus{outline:4px solid var(--focus);outline-offset:2px}.qnum{font-size:.9rem;color:var(--muted)}label{display:block;font-weight:800;margin:6px 0 10px}
 .status{display:grid;gap:8px}.progresswrap{margin:10px 0 14px}.progressbar{height:14px;background:#334155;border-radius:999px;overflow:hidden}.progressfill{height:100%;background:var(--green);width:0%}.navrow{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px}.navrow button{flex:1 1 160px}.currentq{font-weight:800;margin-top:8px}.statusline{padding:10px 12px;border-radius:10px;background:#0b1220;border:1px solid #475569}.ok{border-color:#22c55e}.bad{border-color:#ef4444}.maybe{border-color:#f59e0b}
-.large{font-size:1.2rem}.light{--bg:#f8fafc;--panel:#fff;--card:#f1f5f9;--text:#111827;--muted:#475569;--border:#94a3b8}
+.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:10px}.dashcard{background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:12px}.dashnum{font-size:1.5rem;font-weight:900}.reviewbox{margin-top:10px;padding:12px;border:1px dashed #94a3b8;border-radius:12px;background:#0b1220}.reviewbox ul{margin:.4rem 0 .2rem 1.2rem}.reviewbox[hidden]{display:none}.large{font-size:1.2rem}.light{--bg:#f8fafc;--panel:#fff;--card:#f1f5f9;--text:#111827;--muted:#475569;--border:#94a3b8}
 @media(max-width:650px){.wrap{padding:10px}.actions>*{flex:1 1 45%}}
 @media print{.no-print,.toolbar{display:none!important}body{background:white;color:black}.panel,.question{background:white;color:black;border:1px solid #aaa}textarea,input{background:white;color:black}}
 </style>
@@ -51,7 +51,21 @@ button:focus,a:focus,textarea:focus,input:focus{outline:4px solid var(--focus);o
 <button class="secondary" onclick="window.print()">Print / PDF</button>
 </div></div>
 
-<section class="panel"><label for="name">Name (optional for preparation copy)</label><input id="name" oninput="autosave()"><p class="muted">Answers are stored in this browser when local storage is available. This prototype does not upload answers to a CL360 server.</p></section>
+<section class="panel"><label for="name">Name (optional for preparation copy)</label><input id="name" oninput="autosave();refreshDashboard()"><p class="muted">Answers are stored in this browser when local storage is available. This prototype does not upload answers to a CL360 server.</p></section>
+
+<section class="panel no-print" id="completionDashboard">
+<h2>Completion & Review</h2>
+<p class="muted">This dashboard shows what you have answered. You control when to move forward.</p>
+<div class="dashboard">
+  <div class="dashcard"><div class="muted">Function Report</div><div class="dashnum" id="fCount">0 / 18</div><div id="fPercent">0% answered</div></div>
+  <div class="dashcard"><div class="muted">Work History</div><div class="dashnum" id="wCount">0 / 12</div><div id="wPercent">0% answered</div></div>
+  <div class="dashcard"><div class="muted">Overall</div><div class="dashnum" id="allCount">0 / 30</div><div id="allPercent">0% answered</div></div>
+</div>
+<div class="actions" style="margin-top:10px">
+  <button class="primary" onclick="jumpToFirstUnanswered('f')">Review First Unanswered Function Question</button>
+  <button class="primary" onclick="jumpToFirstUnanswered('w')">Review First Unanswered Work Question</button>
+</div>
+</section>
 
 <section id="function" class="panel"><h2>SSA-3373 Function Report – Adult</h2><p class="muted">Describe only what is true for you.</p><div id="functionQuestions"></div></section>
 <section id="work" class="panel"><h2>SSA-3369 Work History Report</h2><p class="muted">Current SSA work-history development generally focuses on work in the five years before you became unable to work.</p><div id="workQuestions"></div></section>
@@ -104,7 +118,7 @@ function build(container,prefix,list){
  host.innerHTML='<div class="progresswrap"><div class="currentq" id="'+prefix+'Current">Question 1 of '+list.length+'</div><div class="progressbar"><div id="'+prefix+'Progress" class="progressfill"></div></div></div>';
  list.forEach((q,i)=>{
   const d=document.createElement('div');d.className='question';d.id=prefix+'Card'+(i+1);
-  d.innerHTML='<div class="qnum">Question '+(i+1)+' of '+list.length+'</div><label for="'+prefix+(i+1)+'">'+q+'</label><div class="actions no-print"><button class="secondary" type="button" data-read="'+prefix+','+i+'">🔊 Read Question</button><button class="primary" type="button" data-voice="'+prefix+(i+1)+'">🎙️ Start / Continue Dictation</button></div><textarea id="'+prefix+(i+1)+'" placeholder="Type here, use dictation, or use your keyboard microphone…" oninput="autosave()"></textarea><div class="navrow no-print"><button class="secondary" type="button" data-prev="'+prefix+','+i+'">← Previous Question</button><button class="success" type="button" data-next="'+prefix+','+i+'">Save & Next Question →</button></div>';
+  d.innerHTML='<div class="qnum">Question '+(i+1)+' of '+list.length+'</div><label for="'+prefix+(i+1)+'">'+q+'</label><div class="actions no-print"><button class="secondary" type="button" data-read="'+prefix+','+i+'">🔊 Read Question</button><button class="primary" type="button" data-voice="'+prefix+(i+1)+'">🎙️ Start / Continue Dictation</button><button class="secondary" type="button" data-review="'+prefix+','+i+'">✓ Review My Answer</button></div><textarea id="'+prefix+(i+1)+'" placeholder="Type here, use dictation, or use your keyboard microphone…" oninput="autosave();refreshDashboard()"></textarea><div class="reviewbox" id="'+prefix+'Review'+(i+1)+'" hidden></div><div class="navrow no-print"><button class="secondary" type="button" data-prev="'+prefix+','+i+'">← Previous Question</button><button class="success" type="button" data-next="'+prefix+','+i+'">Save & Next Question →</button></div>';
   host.appendChild(d);
  });
  updateProgress(prefix,0);
@@ -123,8 +137,35 @@ function goQuestion(prefix,index){
  if(card)card.scrollIntoView({behavior:'smooth',block:'start'});
  const box=document.getElementById(prefix+(next+1));if(box)setTimeout(()=>box.focus(),350);
 }
-function saveAndNext(prefix,index){autosave();goQuestion(prefix,index+1)}
-function previousQuestion(prefix,index){autosave();goQuestion(prefix,index-1)}
+function saveAndNext(prefix,index){autosave();refreshDashboard();goQuestion(prefix,index+1)}
+function previousQuestion(prefix,index){autosave();refreshDashboard();goQuestion(prefix,index-1)}
+function answeredCount(prefix){
+ const list=prefix==='f'?qs.f:qs.w;
+ let n=0;list.forEach((_,i)=>{const e=document.getElementById(prefix+(i+1));if(e&&e.value.trim())n++});return n;
+}
+function refreshDashboard(){
+ const fc=answeredCount('f'),wc=answeredCount('w'),ft=qs.f.length,wt=qs.w.length,all=fc+wc,total=ft+wt;
+ document.getElementById('fCount').textContent=fc+' / '+ft;document.getElementById('fPercent').textContent=Math.round(fc/ft*100)+'% answered';
+ document.getElementById('wCount').textContent=wc+' / '+wt;document.getElementById('wPercent').textContent=Math.round(wc/wt*100)+'% answered';
+ document.getElementById('allCount').textContent=all+' / '+total;document.getElementById('allPercent').textContent=Math.round(all/total*100)+'% answered';
+}
+function jumpToFirstUnanswered(prefix){
+ const list=prefix==='f'?qs.f:qs.w;
+ for(let i=0;i<list.length;i++){const e=document.getElementById(prefix+(i+1));if(e&&!e.value.trim()){goQuestion(prefix,i);return}}
+ alert('All questions in this section currently have an answer.');
+}
+function reviewAnswer(prefix,index){
+ const id=prefix+(index+1),box=document.getElementById(id),panel=document.getElementById(prefix+'Review'+(index+1)),a=box.value.trim();
+ if(!a){panel.hidden=false;panel.innerHTML='<b>No answer yet.</b><p>Use dictation or typing first. Then come back to review it.</p>';return}
+ const prompts=[];
+ if(a.length<35)prompts.push('Could this answer use one more concrete detail or example?');
+ if(!/often|daily|weekly|minutes|hours|times|every|usually|sometimes|rarely|never/i.test(a))prompts.push('If relevant, consider stating how often this happens or how long it lasts.');
+ if(!/help|assist|someone|need|cannot|can't|difficulty|hard|pain|tight|rest|break/i.test(a))prompts.push('If relevant, consider whether you need help, extra time, rest, or another accommodation.');
+ prompts.push('Make sure the answer describes only what is true for you and does not add a diagnosis or symptom you did not report.');
+ prompts.push('If the limitation varies, consider describing both a typical day and a worse day.');
+ panel.hidden=false;
+ panel.innerHTML='<b>Answer review — keep your meaning exactly the same.</b><ul>'+prompts.map(x=>'<li>'+x+'</li>').join('')+'</ul><p class="muted">This review does not change your answer automatically.</p>';
+}
 
 build('functionQuestions','f',qs.f);build('workQuestions','w',qs.w);
 
@@ -218,10 +259,11 @@ document.addEventListener('click',e=>{
  const v=e.target.closest('[data-voice]');if(v)voiceInto(v.dataset.voice,v);
  const n=e.target.closest('[data-next]');if(n){const [p,i]=n.dataset.next.split(',');saveAndNext(p,+i);}
  const p=e.target.closest('[data-prev]');if(p){const [pr,i]=p.dataset.prev.split(',');previousQuestion(pr,+i);}
+ const rv=e.target.closest('[data-review]');if(rv){const [pr,i]=rv.dataset.review.split(',');reviewAnswer(pr,+i);}
 });
 function allFields(){return [...document.querySelectorAll('textarea')]}
 function autosave(){try{localStorage.setItem('cl360ssa_v03',JSON.stringify({name:document.getElementById('name').value,fields:Object.fromEntries(allFields().map(x=>[x.id,x.value]))}))}catch(e){}}
-function saveNow(){autosave();alert('Answers saved in this browser.')}
+function saveNow(){autosave();refreshDashboard();alert('Answers saved in this browser.')}
 function restore(){try{const raw=localStorage.getItem('cl360ssa_v03');if(!raw)return;const d=JSON.parse(raw);document.getElementById('name').value=d.name||'';Object.entries(d.fields||{}).forEach(([id,v])=>{const e=document.getElementById(id);if(e)e.value=v||''})}catch(e){}}
 function downloadSummary(){
  autosave();let t='CL360 Accessible SSA Forms Assistant - Preparation Summary\nNot affiliated with or endorsed by SSA.\n\n';
@@ -229,6 +271,6 @@ function downloadSummary(){
  [['f','SSA-3373 FUNCTION REPORT',qs.f],['w','SSA-3369 WORK HISTORY',qs.w]].forEach(([p,h,list])=>{t+='========================================\n'+h+'\n';list.forEach((q,i)=>{const a=document.getElementById(p+(i+1)).value.trim();if(a)t+='\nQ'+(i+1)+'. '+q+'\nA: '+a+'\n'});t+='\n';});
  const b=new Blob([t],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='CL360_SSA_Preparation_Answers.txt';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
-restore();checkCapabilities();
+restore();checkCapabilities();refreshDashboard();
 </script>
 </body></html>
