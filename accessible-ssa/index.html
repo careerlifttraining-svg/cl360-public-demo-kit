@@ -70,6 +70,19 @@ button:focus,a:focus,textarea:focus,input:focus{outline:4px solid var(--focus);o
 <section id="function" class="panel"><h2>SSA-3373 Function Report – Adult</h2><p class="muted">Describe only what is true for you.</p><div id="functionQuestions"></div></section>
 <section id="work" class="panel"><h2>SSA-3369 Work History Report</h2><p class="muted">Current SSA work-history development generally focuses on work in the five years before you became unable to work.</p><div id="workQuestions"></div></section>
 
+<section class="panel no-print" id="privacySection">
+<h2>Privacy & Session Controls</h2>
+<div class="notice"><b>Privacy:</b> This prototype stores answers only in this browser using local storage. It does not upload answers to a CL360 server. On a shared device, export your backup if needed, then clear the session when finished.</div>
+<div class="actions" style="margin-top:10px">
+  <button class="secondary" onclick="downloadBackup()">Download Backup</button>
+  <button class="secondary" onclick="document.getElementById('backupInput').click()">Import Backup</button>
+  <input id="backupInput" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)">
+  <button class="warn" onclick="startNewSession()">Start New Session</button>
+  <button class="warn" onclick="clearAllData()">Clear All Saved Data</button>
+</div>
+<p class="muted">Use “Start New Session” when beginning a different person's form. Use “Clear All Saved Data” before leaving a shared device.</p>
+</section>
+
 <section class="panel no-print" id="finalReviewSection">
 <h2>Final Review Before Export</h2>
 <p class="muted">Review every answer in one place. Blank questions are flagged so you can jump back and complete them before exporting.</p>
@@ -296,6 +309,60 @@ function allFields(){return [...document.querySelectorAll('textarea')]}
 function autosave(){try{localStorage.setItem('cl360ssa_v03',JSON.stringify({name:document.getElementById('name').value,fields:Object.fromEntries(allFields().map(x=>[x.id,x.value]))}))}catch(e){}}
 function saveNow(){autosave();refreshDashboard();alert('Answers saved in this browser.')}
 function restore(){try{const raw=localStorage.getItem('cl360ssa_v03');if(!raw)return;const d=JSON.parse(raw);document.getElementById('name').value=d.name||'';Object.entries(d.fields||{}).forEach(([id,v])=>{const e=document.getElementById(id);if(e)e.value=v||''})}catch(e){}}
+function downloadBackup(){
+ autosave();
+ const data={
+   app:"CL360 Accessible SSA Forms Assistant",
+   version:"0.5",
+   exportedAt:new Date().toISOString(),
+   name:document.getElementById('name').value,
+   fields:Object.fromEntries(allFields().map(x=>[x.id,x.value]))
+ };
+ const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='CL360_SSA_Backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function importBackup(event){
+ const file=event.target.files&&event.target.files[0];if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{
+   try{
+     const d=JSON.parse(reader.result);
+     if(!d||typeof d!=='object'||!d.fields){alert('That file does not look like a valid CL360 SSA backup.');return;}
+     if(!confirm('Import this backup and replace the answers currently in this browser?'))return;
+     document.getElementById('name').value=d.name||'';
+     allFields().forEach(x=>x.value=(d.fields&&d.fields[x.id])||'');
+     autosave();refreshDashboard();buildFinalReview();
+     alert('Backup imported successfully.');
+   }catch(e){alert('Could not read that backup file.');}
+   event.target.value='';
+ };
+ reader.readAsText(file);
+}
+function stopActiveDictation(){
+ if(activeListening){activeListening=false;try{if(activeRec)activeRec.stop()}catch(e){}}
+ if(activeButton){activeButton.textContent='🎙️ Start / Continue Dictation';activeButton.classList.remove('warn');}
+ activeRec=null;activeButton=null;activeTarget=null;
+}
+function startNewSession(){
+ if(!confirm('Start a new session? This will clear the current answers from this browser. Download a backup first if you need to keep them.'))return;
+ stopActiveDictation();
+ document.getElementById('name').value='';
+ allFields().forEach(x=>x.value='');
+ localStorage.removeItem('cl360ssa_v03');
+ const fr=document.getElementById('finalReview');if(fr){fr.hidden=true;fr.innerHTML='';}
+ refreshDashboard();goQuestion('f',0);
+ alert('New session started.');
+}
+function clearAllData(){
+ if(!confirm('Permanently clear all saved answers from this browser? This cannot be undone unless you already downloaded a backup.'))return;
+ stopActiveDictation();
+ document.getElementById('name').value='';
+ allFields().forEach(x=>x.value='');
+ localStorage.removeItem('cl360ssa_v03');
+ const fr=document.getElementById('finalReview');if(fr){fr.hidden=true;fr.innerHTML='';}
+ refreshDashboard();
+ alert('All saved data has been cleared from this browser.');
+}
 function downloadSummary(){
  autosave();let t='CL360 Accessible SSA Forms Assistant - Preparation Summary\nNot affiliated with or endorsed by SSA.\n\n';
  const n=document.getElementById('name').value.trim();if(n)t+='Name: '+n+'\n\n';
