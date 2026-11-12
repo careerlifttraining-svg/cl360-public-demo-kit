@@ -70,6 +70,17 @@ button:focus,a:focus,textarea:focus,input:focus{outline:4px solid var(--focus);o
 <section id="function" class="panel"><h2>SSA-3373 Function Report – Adult</h2><p class="muted">Describe only what is true for you.</p><div id="functionQuestions"></div></section>
 <section id="work" class="panel"><h2>SSA-3369 Work History Report</h2><p class="muted">Current SSA work-history development generally focuses on work in the five years before you became unable to work.</p><div id="workQuestions"></div></section>
 
+<section class="panel no-print" id="finalReviewSection">
+<h2>Final Review Before Export</h2>
+<p class="muted">Review every answer in one place. Blank questions are flagged so you can jump back and complete them before exporting.</p>
+<div class="actions">
+  <button class="primary" onclick="buildFinalReview()">Build Final Review</button>
+  <button class="success" onclick="downloadSummary()">Download Final Summary</button>
+  <button class="secondary" onclick="window.print()">Print / Save PDF</button>
+</div>
+<div id="finalReview" class="reviewbox" hidden></div>
+</section>
+
 <section class="panel no-print">
 <h2>If speech-to-text is unavailable</h2>
 <p>You can still tap an answer box and use the <b>microphone on your Android keyboard</b>. That uses your phone's built-in dictation instead of the web speech API.</p>
@@ -153,6 +164,26 @@ function jumpToFirstUnanswered(prefix){
  const list=prefix==='f'?qs.f:qs.w;
  for(let i=0;i<list.length;i++){const e=document.getElementById(prefix+(i+1));if(e&&!e.value.trim()){goQuestion(prefix,i);return}}
  alert('All questions in this section currently have an answer.');
+}
+function buildFinalReview(){
+ autosave();refreshDashboard();
+ const sections=[['f','SSA-3373 Function Report',qs.f],['w','SSA-3369 Work History',qs.w]];
+ let html='',answered=0,total=0,blanks=0;
+ sections.forEach(([p,title,list])=>{
+   html+='<h3>'+title+'</h3>';
+   list.forEach((q,i)=>{
+     total++;
+     const id=p+(i+1),el=document.getElementById(id),a=el?el.value.trim():'';
+     if(a){answered++;html+='<div class="question"><div class="qnum">Question '+(i+1)+'</div><b>'+q+'</b><p>'+escapeHtml(a)+'</p><button class="secondary no-print" onclick="goQuestion(\''+p+'\','+i+')">Edit This Answer</button></div>';}
+     else{blanks++;html+='<div class="question" style="border-color:#f59e0b"><div class="qnum">Question '+(i+1)+' — BLANK</div><b>'+q+'</b><p class="muted">No answer entered.</p><button class="warn no-print" onclick="goQuestion(\''+p+'\','+i+')">Go Complete This Question</button></div>';}
+   });
+ });
+ const ready=blanks===0;
+ html='<div class="statusline '+(ready?'ok':'maybe')+'"><b>'+(ready?'Ready for export review':'Review still needed')+'</b><br>'+answered+' of '+total+' questions answered. '+blanks+' blank.</div>'+html;
+ const panel=document.getElementById('finalReview');panel.hidden=false;panel.innerHTML=html;panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function escapeHtml(s){
+ return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 function reviewAnswer(prefix,index){
  const id=prefix+(index+1),box=document.getElementById(id),panel=document.getElementById(prefix+'Review'+(index+1)),a=box.value.trim();
