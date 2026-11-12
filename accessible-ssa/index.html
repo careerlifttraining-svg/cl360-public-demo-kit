@@ -137,19 +137,66 @@ async function testMic(){
  r.onerror=e=>alert('Speech recognition error: '+e.error+'. If this continues, use the Android keyboard microphone.');
  r.start();
 }
-function voiceInto(id){
+let activeRec=null, activeListening=false, activeButton=null, activeTarget=null;
+function voiceInto(id,button){
  const target=document.getElementById(id);target.focus();
  if(!SR){alert('Web speech-to-text is not available in this browser. The answer box is focused — tap the microphone on your Android keyboard to dictate.');return;}
- const r=new SR();r.lang='en-US';r.interimResults=false;r.continuous=false;
- r.onstart=()=>{target.placeholder='Listening… speak now';};
- r.onresult=e=>{const t=e.results[0][0].transcript;target.value=(target.value.trim()?target.value.trim()+' ':'')+t;autosave();};
- r.onerror=e=>{alert('Speech recognition error: '+e.error+'. You can use the keyboard microphone instead.');};
- r.onend=()=>{target.placeholder='Type here, use Speak Answer, or use your keyboard microphone…';};
- r.start();
+
+ if(activeListening && activeTarget===id){
+   activeListening=false;
+   if(activeRec){try{activeRec.stop()}catch(e){}}
+   if(activeButton){activeButton.textContent='🎙️ Speak Answer';activeButton.classList.remove('warn');}
+   target.placeholder='Type here, use Speak Answer, or use your keyboard microphone…';
+   activeRec=null;activeButton=null;activeTarget=null;
+   return;
+ }
+
+ if(activeListening && activeRec){
+   activeListening=false;
+   try{activeRec.stop()}catch(e){}
+   if(activeButton){activeButton.textContent='🎙️ Speak Answer';activeButton.classList.remove('warn');}
+ }
+
+ activeListening=true;activeButton=button;activeTarget=id;
+ button.textContent='⏹ Stop Dictation';button.classList.add('warn');
+ target.placeholder='Listening continuously… pause when needed, then tap Stop Dictation when finished.';
+
+ const startSession=()=>{
+   if(!activeListening || activeTarget!==id)return;
+   const r=new SR();activeRec=r;r.lang='en-US';r.interimResults=true;r.continuous=true;
+   r.onresult=e=>{
+     let finalText='';
+     for(let i=e.resultIndex;i<e.results.length;i++){
+       if(e.results[i].isFinal) finalText+=e.results[i][0].transcript+' ';
+     }
+     if(finalText){
+       target.value=(target.value.trim()?target.value.trim()+' ':'')+finalText.trim();
+       autosave();
+     }
+   };
+   r.onerror=e=>{
+     if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+       activeListening=false;
+       button.textContent='🎙️ Speak Answer';button.classList.remove('warn');
+       target.placeholder='Type here, use Speak Answer, or use your keyboard microphone…';
+       alert('Microphone or speech permission was blocked. Allow microphone access for this site, or use the Android keyboard microphone.');
+     }
+   };
+   r.onend=()=>{
+     if(activeListening && activeTarget===id){
+       setTimeout(startSession,250);
+     }else{
+       button.textContent='🎙️ Speak Answer';button.classList.remove('warn');
+       target.placeholder='Type here, use Speak Answer, or use your keyboard microphone…';
+     }
+   };
+   try{r.start()}catch(e){setTimeout(startSession,350)}
+ };
+ startSession();
 }
 document.addEventListener('click',e=>{
  const r=e.target.closest('[data-read]');if(r){const [p,i]=r.dataset.read.split(',');speak(p==='f'?qs.f[+i]:qs.w[+i]);}
- const v=e.target.closest('[data-voice]');if(v)voiceInto(v.dataset.voice);
+ const v=e.target.closest('[data-voice]');if(v)voiceInto(v.dataset.voice,v);
 });
 function allFields(){return [...document.querySelectorAll('textarea')]}
 function autosave(){try{localStorage.setItem('cl360ssa_v03',JSON.stringify({name:document.getElementById('name').value,fields:Object.fromEntries(allFields().map(x=>[x.id,x.value]))}))}catch(e){}}
