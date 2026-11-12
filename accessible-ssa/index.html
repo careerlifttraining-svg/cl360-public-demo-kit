@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CL360 Accessible SSA Forms Assistant</title>
+<style>
+:root{--bg:#0f172a;--panel:#111827;--card:#1f2937;--text:#f8fafc;--muted:#cbd5e1;--blue:#38bdf8;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--border:#475569;--focus:#facc15}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+header{padding:22px 16px;background:linear-gradient(135deg,#0b1220,#172554)}.wrap{max-width:980px;margin:auto;padding:14px}
+h1{margin:0 0 6px;font-size:clamp(1.7rem,4vw,2.5rem)}h2{margin:.2rem 0}
+.panel,.question{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;margin:14px 0}.question{background:var(--card)}
+.notice{background:#3b2a08;border-left:5px solid var(--amber);padding:12px;border-radius:10px}.muted{color:var(--muted)}
+.toolbar{position:sticky;top:0;z-index:30;background:rgba(15,23,42,.96);border:1px solid var(--border);border-radius:14px;padding:10px;margin:14px 0}
+.actions{display:flex;flex-wrap:wrap;gap:9px}button,a.btn{min-height:48px;border:0;border-radius:12px;padding:10px 13px;font:inherit;font-weight:750;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.primary{background:var(--blue);color:#082f49}.secondary{background:#334155;color:white}.success{background:var(--green);color:#052e16}.warn{background:var(--amber);color:#3b2000}
+textarea,input{width:100%;background:#0b1220;color:#fff;border:2px solid #64748b;border-radius:11px;padding:12px;font:inherit}textarea{min-height:130px}
+button:focus,a:focus,textarea:focus,input:focus{outline:4px solid var(--focus);outline-offset:2px}.qnum{font-size:.9rem;color:var(--muted)}label{display:block;font-weight:800;margin:6px 0 10px}
+.status{display:grid;gap:8px}.statusline{padding:10px 12px;border-radius:10px;background:#0b1220;border:1px solid #475569}.ok{border-color:#22c55e}.bad{border-color:#ef4444}.maybe{border-color:#f59e0b}
+.large{font-size:1.2rem}.light{--bg:#f8fafc;--panel:#fff;--card:#f1f5f9;--text:#111827;--muted:#475569;--border:#94a3b8}
+@media(max-width:650px){.wrap{padding:10px}.actions>*{flex:1 1 45%}}
+@media print{.no-print,.toolbar{display:none!important}body{background:white;color:black}.panel,.question{background:white;color:black;border:1px solid #aaa}textarea,input{background:white;color:black}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>CL360 Accessible SSA Forms Assistant</h1><div class="muted">Voice-first preparation for SSA-3373 Function Report and SSA-3369 Work History Report</div></div></header>
+<main class="wrap">
+<div class="notice"><b>Important:</b> This tool is for accessibility and preparation. It is not affiliated with or endorsed by the Social Security Administration, does not decide eligibility, and does not submit forms to SSA.</div>
+
+<section class="panel no-print">
+<h2>Voice setup</h2>
+<p class="muted">Run these tests first. Chrome or Edge on Android is recommended.</p>
+<div class="status">
+  <div id="secureStatus" class="statusline">Checking secure connection…</div>
+  <div id="ttsStatus" class="statusline">Checking read-aloud…</div>
+  <div id="sttStatus" class="statusline">Checking speech-to-text…</div>
+</div>
+<div class="actions" style="margin-top:10px">
+  <button class="secondary" onclick="testTTS()">🔊 Test Read Aloud</button>
+  <button class="primary" onclick="testMic()">🎙️ Test Microphone</button>
+</div>
+<p id="voiceHelp" class="muted"></p>
+</section>
+
+<div class="toolbar no-print"><div class="actions">
+<a class="btn primary" href="#function">Function Report</a>
+<a class="btn primary" href="#work">Work History</a>
+<button class="secondary" onclick="document.body.classList.toggle('large')">Large Text</button>
+<button class="secondary" onclick="document.body.classList.toggle('light')">Light / Contrast</button>
+<button class="success" onclick="saveNow()">Save Answers</button>
+<button class="secondary" onclick="downloadSummary()">Download Summary</button>
+<button class="secondary" onclick="window.print()">Print / PDF</button>
+</div></div>
+
+<section class="panel"><label for="name">Name (optional for preparation copy)</label><input id="name" oninput="autosave()"><p class="muted">Answers are stored in this browser when local storage is available. This prototype does not upload answers to a CL360 server.</p></section>
+
+<section id="function" class="panel"><h2>SSA-3373 Function Report – Adult</h2><p class="muted">Describe only what is true for you.</p><div id="functionQuestions"></div></section>
+<section id="work" class="panel"><h2>SSA-3369 Work History Report</h2><p class="muted">Current SSA work-history development generally focuses on work in the five years before you became unable to work.</p><div id="workQuestions"></div></section>
+
+<section class="panel no-print">
+<h2>If speech-to-text is unavailable</h2>
+<p>You can still tap an answer box and use the <b>microphone on your Android keyboard</b>. That uses your phone's built-in dictation instead of the web speech API.</p>
+</section>
+</main>
+
+<script>
+const qs={
+f:[
+"Describe what you do from the time you wake up until you go to bed.",
+"What were you able to do before your illnesses, injuries, or conditions that you cannot do now?",
+"Do your conditions affect your sleep? Explain.",
+"Explain any difficulty with dressing, bathing, grooming, feeding yourself, using the toilet, or other personal care.",
+"Do you need reminders for personal care, grooming, or medicine? Explain.",
+"Do you prepare meals? What do you prepare, how often, and how long does it take?",
+"What household chores or yard work can you do? How long do they take and how often?",
+"How often do you go outside? How do you travel? Can you go out alone? Do you drive?",
+"Describe your shopping and any limitations.",
+"Explain any difficulty handling money or paying bills.",
+"Describe hobbies, interests, and social activities and how they have changed.",
+"Explain how your condition affects lifting, bending, standing, reaching, walking, sitting, stairs, memory, concentration, following instructions, using your hands, or getting along with others.",
+"How far can you walk before stopping to rest? How long do you rest?",
+"How long can you pay attention? Do you finish what you start?",
+"How well do you follow written and spoken instructions?",
+"How well do you handle stress and changes in routine?",
+"Do you use assistive devices or aids? Explain.",
+"Anything else SSA should understand about how your conditions affect daily functioning?"
+],
+w:[
+"List each job you had during the five years before you became unable to work. Include job title, employer or type of business, and dates worked.",
+"For your most recent job, describe a typical workday in detail.",
+"What machines, tools, equipment, computers, or software did you use?",
+"Did the job require writing, reports, data entry, or other documentation? Explain.",
+"How many hours per day and days per week did you work? What was your rate of pay?",
+"Describe how much of the day you spent sitting, standing, walking, bending, kneeling, crouching, reaching, or climbing.",
+"Describe lifting and carrying: what, how far, how often, and the heaviest weight.",
+"Did you supervise others? Explain.",
+"Describe interaction with coworkers, supervisors, customers, patients, or the public.",
+"Describe mental demands: concentration, memory, pace, deadlines, decisions, problem solving, or multitasking.",
+"Describe any additional jobs from the five-year period in the same detail.",
+"Add remarks that help SSA understand what your past work actually required."
+]};
+
+function build(container,prefix,list){
+ const host=document.getElementById(container);
+ list.forEach((q,i)=>{
+  const d=document.createElement('div');d.className='question';
+  d.innerHTML='<div class="qnum">Question '+(i+1)+' of '+list.length+'</div><label for="'+prefix+(i+1)+'">'+q+'</label><div class="actions no-print"><button class="secondary" type="button" data-read="'+prefix+','+i+'">🔊 Read Question</button><button class="primary" type="button" data-voice="'+prefix+(i+1)+'">🎙️ Speak Answer</button></div><textarea id="'+prefix+(i+1)+'" placeholder="Type here, use Speak Answer, or use your keyboard microphone…" oninput="autosave()"></textarea>';
+  host.appendChild(d);
+ });
+}
+build('functionQuestions','f',qs.f);build('workQuestions','w',qs.w);
+
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function setStatus(id,text,cls){const e=document.getElementById(id);e.textContent=text;e.className='statusline '+cls}
+function checkCapabilities(){
+ setStatus('secureStatus',window.isSecureContext?'✓ Secure HTTPS connection detected':'⚠ Not a secure context — microphone features may be blocked',window.isSecureContext?'ok':'bad');
+ setStatus('ttsStatus','speechSynthesis' in window?'✓ Read-aloud is available':'✗ Read-aloud is not available in this browser','speechSynthesis' in window?'ok':'bad');
+ setStatus('sttStatus',SR?'✓ Speech-to-text API detected':'⚠ Browser speech-to-text API not detected — use keyboard microphone instead',SR?'ok':'maybe');
+ if(!SR)document.getElementById('voiceHelp').textContent='Speech recognition support varies by browser. Your Android keyboard microphone is the fallback and will still let you dictate into any answer box.';
+}
+function speak(text){
+ if(!('speechSynthesis' in window)){alert('Read-aloud is unavailable in this browser.');return;}
+ speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=0.95;
+ u.onerror=()=>alert('The browser could not play speech. Check media volume and try Chrome or Edge.');
+ speechSynthesis.speak(u);
+}
+function testTTS(){speak('CareerLift360 voice test. If you can hear this, read aloud is working.');}
+async function testMic(){
+ if(!window.isSecureContext){alert('Microphone access requires the hosted HTTPS version of this app.');return;}
+ try{
+   if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+     const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());
+   }
+ }catch(e){alert('Microphone permission was not granted. In Chrome, allow microphone access for this site, then try again.');return;}
+ if(!SR){alert('Microphone permission is working, but this browser does not expose Web Speech Recognition. Use the microphone button on your Android keyboard inside the answer box.');return;}
+ const r=new SR();r.lang='en-US';r.interimResults=false;r.continuous=false;
+ r.onresult=e=>alert('Speech-to-text is working. I heard: '+e.results[0][0].transcript);
+ r.onerror=e=>alert('Speech recognition error: '+e.error+'. If this continues, use the Android keyboard microphone.');
+ r.start();
+}
+function voiceInto(id){
+ const target=document.getElementById(id);target.focus();
+ if(!SR){alert('Web speech-to-text is not available in this browser. The answer box is focused — tap the microphone on your Android keyboard to dictate.');return;}
+ const r=new SR();r.lang='en-US';r.interimResults=false;r.continuous=false;
+ r.onstart=()=>{target.placeholder='Listening… speak now';};
+ r.onresult=e=>{const t=e.results[0][0].transcript;target.value=(target.value.trim()?target.value.trim()+' ':'')+t;autosave();};
+ r.onerror=e=>{alert('Speech recognition error: '+e.error+'. You can use the keyboard microphone instead.');};
+ r.onend=()=>{target.placeholder='Type here, use Speak Answer, or use your keyboard microphone…';};
+ r.start();
+}
+document.addEventListener('click',e=>{
+ const r=e.target.closest('[data-read]');if(r){const [p,i]=r.dataset.read.split(',');speak(p==='f'?qs.f[+i]:qs.w[+i]);}
+ const v=e.target.closest('[data-voice]');if(v)voiceInto(v.dataset.voice);
+});
+function allFields(){return [...document.querySelectorAll('textarea')]}
+function autosave(){try{localStorage.setItem('cl360ssa_v03',JSON.stringify({name:document.getElementById('name').value,fields:Object.fromEntries(allFields().map(x=>[x.id,x.value]))}))}catch(e){}}
+function saveNow(){autosave();alert('Answers saved in this browser.')}
+function restore(){try{const raw=localStorage.getItem('cl360ssa_v03');if(!raw)return;const d=JSON.parse(raw);document.getElementById('name').value=d.name||'';Object.entries(d.fields||{}).forEach(([id,v])=>{const e=document.getElementById(id);if(e)e.value=v||''})}catch(e){}}
+function downloadSummary(){
+ autosave();let t='CL360 Accessible SSA Forms Assistant - Preparation Summary\nNot affiliated with or endorsed by SSA.\n\n';
+ const n=document.getElementById('name').value.trim();if(n)t+='Name: '+n+'\n\n';
+ [['f','SSA-3373 FUNCTION REPORT',qs.f],['w','SSA-3369 WORK HISTORY',qs.w]].forEach(([p,h,list])=>{t+='========================================\n'+h+'\n';list.forEach((q,i)=>{const a=document.getElementById(p+(i+1)).value.trim();if(a)t+='\nQ'+(i+1)+'. '+q+'\nA: '+a+'\n'});t+='\n';});
+ const b=new Blob([t],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='CL360_SSA_Preparation_Answers.txt';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+restore();checkCapabilities();
+</script>
+</body></html>
