@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CL360 Accessible SSA Forms Assistant</title>
+<title>CL360 Accessible Forms Assistant | SSA Preparation</title>
 <style>
 :root{--bg:#0f172a;--panel:#111827;--card:#1f2937;--text:#f8fafc;--muted:#cbd5e1;--blue:#38bdf8;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--border:#475569;--focus:#facc15}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
-header{padding:22px 16px;background:linear-gradient(135deg,#0b1220,#172554)}.wrap{max-width:980px;margin:auto;padding:14px}
+header{padding:22px 16px;background:linear-gradient(135deg,#07111f,#0f2b4a 55%,#0b3b52)}.wrap{max-width:980px;margin:auto;padding:14px}.brandline{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.brandmark{font-weight:900;letter-spacing:.04em}.version{font-size:.82rem;padding:4px 9px;border-radius:999px;background:#0b1220;border:1px solid var(--border)}.hero{background:linear-gradient(135deg,#0b1220,#102a43);border:1px solid var(--border);border-radius:20px;padding:22px;margin:16px 0}.hero h2{font-size:clamp(1.5rem,3.5vw,2.1rem);margin-bottom:8px}.hero p{font-size:1.05rem}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:14px}.step{background:#0b1220;border:1px solid var(--border);border-radius:14px;padding:13px}.stepnum{font-weight:900;color:var(--blue);font-size:1.15rem}.helpgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.helpitem{background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:12px}
 h1{margin:0 0 6px;font-size:clamp(1.7rem,4vw,2.5rem)}h2{margin:.2rem 0}
 .panel,.question{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;margin:14px 0}.question{background:var(--card)}
 .notice{background:#3b2a08;border-left:5px solid var(--amber);padding:12px;border-radius:10px}.muted{color:var(--muted)}
@@ -22,11 +22,35 @@ button:focus,a:focus,textarea:focus,input:focus{outline:4px solid var(--focus);o
 </style>
 </head>
 <body>
-<header><div class="wrap"><h1>CL360 Accessible SSA Forms Assistant</h1><div class="muted">Voice-first preparation for SSA-3373 Function Report and SSA-3369 Work History Report</div></div></header>
+<header><div class="wrap">
+<div class="brandline">
+  <div class="brandmark">CareerLift360</div>
+  <span class="version">v0.6 Public MVP</span>
+</div>
+<h1>CL360 Accessible Forms Assistant</h1>
+<div class="muted">Voice-first preparation support for SSA-3373 Function Report and SSA-3369 Work History Report</div>
+</div></header>
 <main class="wrap">
+
+<section class="hero" id="start">
+  <h2>Complete disability paperwork with less typing and less strain.</h2>
+  <p>This accessibility-focused tool lets you hear questions aloud, dictate answers, save progress, review blanks, and export a preparation summary before using the official Social Security process.</p>
+  <div class="hero-actions no-print">
+    <a class="btn primary" href="#voiceSetup">Start Voice Setup</a>
+    <a class="btn success" href="#function">Start Function Report</a>
+    <a class="btn secondary" href="#work">Start Work History</a>
+  </div>
+  <div class="steps">
+    <div class="step"><div class="stepnum">1. Listen</div><div>Have the question read aloud.</div></div>
+    <div class="step"><div class="stepnum">2. Answer</div><div>Speak your answer or type it.</div></div>
+    <div class="step"><div class="stepnum">3. Review</div><div>Check blanks and clarify your own wording.</div></div>
+    <div class="step"><div class="stepnum">4. Export</div><div>Download or print your preparation summary.</div></div>
+  </div>
+</section>
+
 <div class="notice"><b>Important:</b> This tool is for accessibility and preparation. It is not affiliated with or endorsed by the Social Security Administration, does not decide eligibility, and does not submit forms to SSA.</div>
 
-<section class="panel no-print">
+<section class="panel no-print" id="voiceSetup">
 <h2>Voice setup</h2>
 <p class="muted">Run these tests first. Chrome or Edge on Android is recommended.</p>
 <div class="status">
@@ -44,6 +68,7 @@ button:focus,a:focus,textarea:focus,input:focus{outline:4px solid var(--focus);o
 <div class="toolbar no-print"><div class="actions">
 <a class="btn primary" href="#function">Function Report</a>
 <a class="btn primary" href="#work">Work History</a>
+<a class="btn secondary" href="#help">Help</a>
 <button class="secondary" onclick="document.body.classList.toggle('large')">Large Text</button>
 <button class="secondary" onclick="document.body.classList.toggle('light')">Light / Contrast</button>
 <button class="success" onclick="saveNow()">Save Answers</button>
@@ -67,8 +92,27 @@ button:focus,a:focus,textarea:focus,input:focus{outline:4px solid var(--focus);o
 </div>
 </section>
 
-<section id="function" class="panel"><h2>SSA-3373 Function Report – Adult</h2><p class="muted">Describe only what is true for you.</p><div id="functionQuestions"></div></section>
-<section id="work" class="panel"><h2>SSA-3369 Work History Report</h2><p class="muted">Current SSA work-history development generally focuses on work in the five years before you became unable to work.</p><div id="workQuestions"></div></section>
+<section id="function" class="panel"><h2>SSA-3373 Function Report – Adult</h2><p class="no-print"><a href="#start">↑ Back to top</a></p><p class="muted">Describe only what is true for you.</p><div id="functionQuestions"></div></section>
+<section id="work" class="panel"><h2>SSA-3369 Work History Report</h2><p class="no-print"><a href="#start">↑ Back to top</a></p><p class="muted">Current SSA work-history development generally focuses on work in the five years before you became unable to work.</p><div id="workQuestions"></div></section>
+
+<section class="panel" id="help">
+<h2>How to Use This Tool</h2>
+<div class="helpgrid">
+  <div class="helpitem"><b>Read Question</b><p class="muted">Plays the current question aloud when your browser supports text-to-speech.</p></div>
+  <div class="helpitem"><b>Start / Continue Dictation</b><p class="muted">Adds spoken words to the current answer. You stay on the same question until you choose to move.</p></div>
+  <div class="helpitem"><b>Save & Next</b><p class="muted">Saves your current work in this browser and moves you forward.</p></div>
+  <div class="helpitem"><b>Review My Answer</b><p class="muted">Shows prompts that may help you add useful detail without changing your meaning.</p></div>
+  <div class="helpitem"><b>Final Review</b><p class="muted">Shows every answer together and flags blanks before export.</p></div>
+  <div class="helpitem"><b>Backup</b><p class="muted">Lets you save a local copy and restore it later.</p></div>
+</div>
+</section>
+
+<section class="panel">
+<h2>Accessibility Statement</h2>
+<p>CL360 Accessible Forms Assistant is designed to reduce barriers for people who may have difficulty handwriting, typing, reading small text, navigating long forms, or maintaining hand use for extended periods.</p>
+<p class="muted">Current accessibility features include large controls, keyboard focus indicators, optional larger text, contrast controls, read-aloud support, speech-to-text support where available, local save/resume, and mobile-responsive layout.</p>
+<p class="muted">This is an evolving accessibility product. Browser and device support can vary, especially for speech recognition.</p>
+</section>
 
 <section class="panel no-print" id="privacySection">
 <h2>Privacy & Session Controls</h2>
@@ -98,6 +142,13 @@ button:focus,a:focus,textarea:focus,input:focus{outline:4px solid var(--focus);o
 <h2>If speech-to-text is unavailable</h2>
 <p>You can still tap an answer box and use the <b>microphone on your Android keyboard</b>. That uses your phone's built-in dictation instead of the web speech API.</p>
 </section>
+<footer class="wrap" style="padding-bottom:34px">
+  <div class="panel">
+    <b>CareerLift360 | CL360 Accessible Forms Assistant</b>
+    <p class="muted">Accessibility-first form preparation. Not affiliated with or endorsed by the Social Security Administration.</p>
+    <p class="muted">Version 0.6 Public MVP</p>
+  </div>
+</footer>
 </main>
 
 <script>
