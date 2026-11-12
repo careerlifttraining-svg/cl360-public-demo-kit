@@ -15,7 +15,7 @@ h1{margin:0 0 6px;font-size:clamp(1.7rem,4vw,2.5rem)}h2{margin:.2rem 0}
 .primary{background:var(--blue);color:#082f49}.secondary{background:#334155;color:white}.success{background:var(--green);color:#052e16}.warn{background:var(--amber);color:#3b2000}
 textarea,input{width:100%;background:#0b1220;color:#fff;border:2px solid #64748b;border-radius:11px;padding:12px;font:inherit}textarea{min-height:130px}
 button:focus,a:focus,textarea:focus,input:focus{outline:4px solid var(--focus);outline-offset:2px}.qnum{font-size:.9rem;color:var(--muted)}label{display:block;font-weight:800;margin:6px 0 10px}
-.status{display:grid;gap:8px}.statusline{padding:10px 12px;border-radius:10px;background:#0b1220;border:1px solid #475569}.ok{border-color:#22c55e}.bad{border-color:#ef4444}.maybe{border-color:#f59e0b}
+.status{display:grid;gap:8px}.progresswrap{margin:10px 0 14px}.progressbar{height:14px;background:#334155;border-radius:999px;overflow:hidden}.progressfill{height:100%;background:var(--green);width:0%}.navrow{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px}.navrow button{flex:1 1 160px}.currentq{font-weight:800;margin-top:8px}.statusline{padding:10px 12px;border-radius:10px;background:#0b1220;border:1px solid #475569}.ok{border-color:#22c55e}.bad{border-color:#ef4444}.maybe{border-color:#f59e0b}
 .large{font-size:1.2rem}.light{--bg:#f8fafc;--panel:#fff;--card:#f1f5f9;--text:#111827;--muted:#475569;--border:#94a3b8}
 @media(max-width:650px){.wrap{padding:10px}.actions>*{flex:1 1 45%}}
 @media print{.no-print,.toolbar{display:none!important}body{background:white;color:black}.panel,.question{background:white;color:black;border:1px solid #aaa}textarea,input{background:white;color:black}}
@@ -101,12 +101,31 @@ w:[
 
 function build(container,prefix,list){
  const host=document.getElementById(container);
+ host.innerHTML='<div class="progresswrap"><div class="currentq" id="'+prefix+'Current">Question 1 of '+list.length+'</div><div class="progressbar"><div id="'+prefix+'Progress" class="progressfill"></div></div></div>';
  list.forEach((q,i)=>{
-  const d=document.createElement('div');d.className='question';
-  d.innerHTML='<div class="qnum">Question '+(i+1)+' of '+list.length+'</div><label for="'+prefix+(i+1)+'">'+q+'</label><div class="actions no-print"><button class="secondary" type="button" data-read="'+prefix+','+i+'">🔊 Read Question</button><button class="primary" type="button" data-voice="'+prefix+(i+1)+'">🎙️ Speak Answer</button></div><textarea id="'+prefix+(i+1)+'" placeholder="Type here, use Speak Answer, or use your keyboard microphone…" oninput="autosave()"></textarea>';
+  const d=document.createElement('div');d.className='question';d.id=prefix+'Card'+(i+1);
+  d.innerHTML='<div class="qnum">Question '+(i+1)+' of '+list.length+'</div><label for="'+prefix+(i+1)+'">'+q+'</label><div class="actions no-print"><button class="secondary" type="button" data-read="'+prefix+','+i+'">🔊 Read Question</button><button class="primary" type="button" data-voice="'+prefix+(i+1)+'">🎙️ Start / Continue Dictation</button></div><textarea id="'+prefix+(i+1)+'" placeholder="Type here, use dictation, or use your keyboard microphone…" oninput="autosave()"></textarea><div class="navrow no-print"><button class="secondary" type="button" data-prev="'+prefix+','+i+'">← Previous Question</button><button class="success" type="button" data-next="'+prefix+','+i+'">Save & Next Question →</button></div>';
   host.appendChild(d);
  });
+ updateProgress(prefix,0);
 }
+function updateProgress(prefix,index){
+ const list=prefix==='f'?qs.f:qs.w;
+ const pct=((index+1)/list.length)*100;
+ const bar=document.getElementById(prefix+'Progress');if(bar)bar.style.width=pct+'%';
+ const txt=document.getElementById(prefix+'Current');if(txt)txt.textContent='Question '+(index+1)+' of '+list.length;
+}
+function goQuestion(prefix,index){
+ const list=prefix==='f'?qs.f:qs.w;
+ const next=Math.max(0,Math.min(index,list.length-1));
+ updateProgress(prefix,next);
+ const card=document.getElementById(prefix+'Card'+(next+1));
+ if(card)card.scrollIntoView({behavior:'smooth',block:'start'});
+ const box=document.getElementById(prefix+(next+1));if(box)setTimeout(()=>box.focus(),350);
+}
+function saveAndNext(prefix,index){autosave();goQuestion(prefix,index+1)}
+function previousQuestion(prefix,index){autosave();goQuestion(prefix,index-1)}
+
 build('functionQuestions','f',qs.f);build('workQuestions','w',qs.w);
 
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -145,7 +164,7 @@ function voiceInto(id,button){
  if(activeListening && activeTarget===id){
    activeListening=false;
    if(activeRec){try{activeRec.stop()}catch(e){}}
-   if(activeButton){activeButton.textContent='🎙️ Speak Answer';activeButton.classList.remove('warn');}
+   if(activeButton){activeButton.textContent='🎙️ Start / Continue Dictation';activeButton.classList.remove('warn');}
    target.placeholder='Type here, use Speak Answer, or use your keyboard microphone…';
    activeRec=null;activeButton=null;activeTarget=null;
    return;
@@ -154,7 +173,7 @@ function voiceInto(id,button){
  if(activeListening && activeRec){
    activeListening=false;
    try{activeRec.stop()}catch(e){}
-   if(activeButton){activeButton.textContent='🎙️ Speak Answer';activeButton.classList.remove('warn');}
+   if(activeButton){activeButton.textContent='🎙️ Start / Continue Dictation';activeButton.classList.remove('warn');}
  }
 
  activeListening=true;activeButton=button;activeTarget=id;
@@ -177,7 +196,7 @@ function voiceInto(id,button){
    r.onerror=e=>{
      if(e.error==='not-allowed'||e.error==='service-not-allowed'){
        activeListening=false;
-       button.textContent='🎙️ Speak Answer';button.classList.remove('warn');
+       button.textContent='🎙️ Start / Continue Dictation';button.classList.remove('warn');
        target.placeholder='Type here, use Speak Answer, or use your keyboard microphone…';
        alert('Microphone or speech permission was blocked. Allow microphone access for this site, or use the Android keyboard microphone.');
      }
@@ -186,7 +205,7 @@ function voiceInto(id,button){
      if(activeListening && activeTarget===id){
        setTimeout(startSession,250);
      }else{
-       button.textContent='🎙️ Speak Answer';button.classList.remove('warn');
+       button.textContent='🎙️ Start / Continue Dictation';button.classList.remove('warn');
        target.placeholder='Type here, use Speak Answer, or use your keyboard microphone…';
      }
    };
@@ -197,6 +216,8 @@ function voiceInto(id,button){
 document.addEventListener('click',e=>{
  const r=e.target.closest('[data-read]');if(r){const [p,i]=r.dataset.read.split(',');speak(p==='f'?qs.f[+i]:qs.w[+i]);}
  const v=e.target.closest('[data-voice]');if(v)voiceInto(v.dataset.voice,v);
+ const n=e.target.closest('[data-next]');if(n){const [p,i]=n.dataset.next.split(',');saveAndNext(p,+i);}
+ const p=e.target.closest('[data-prev]');if(p){const [pr,i]=p.dataset.prev.split(',');previousQuestion(pr,+i);}
 });
 function allFields(){return [...document.querySelectorAll('textarea')]}
 function autosave(){try{localStorage.setItem('cl360ssa_v03',JSON.stringify({name:document.getElementById('name').value,fields:Object.fromEntries(allFields().map(x=>[x.id,x.value]))}))}catch(e){}}
